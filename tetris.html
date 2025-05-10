@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-DK8V169LPW"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-DK8V169LPW');
+  </script>
+
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brik Game (Tetris Clone)</title>
+
+  
+  <style>
+    /* Impede scroll e overscroll da página */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #eee;
+      font-family: sans-serif;
+      position: relative;
+    }
+    #game-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #game {
+      border: 2px solid #444;
+      background: #000;
+      cursor: pointer;
+      touch-action: none; /* desabilita ação de toque padrão */
+      width: 90vw;
+      height: calc(90vw * 2);
+      max-width: calc(90vh * 0.5);
+      max-height: 90vh;
+      display: block;
+      z-index: 1;
+    }
+    #scoreboard {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 5;
+    }
+    #scoreboard div {
+      margin: 5px 0;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,0,0,0.5);
+      padding: 5px 10px;
+      border-radius: 5px;
+      z-index: 5;
+    }
+    #controls input[type="range"] {
+      width: 100px;
+    }
+    #mute-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: #eee;
+    }
+    #start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+    #start-screen button {
+      padding: 10px 20px;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    #record-display {
+      margin: 10px;
+      color: #ff0;
+    }
+    
+/* barra de menu */
+
+header.header {
+    background-color: #002B5B; /* azul escuro */
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    padding: 10px 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.header__logo {
+    margin-left: 20px;
+}
+
+.header__logo img {
+    height: 60px;
+}
+
+.header__nav {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+}
+
+.header__menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.header__menu li {
+    display: inline-block;
+}
+
+.header__menu li a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 10px 15px;
+}
+
+.header__menu li.Ativo a {
+    border-bottom: 2px solid #fff;
+}
+
+
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-2">
+                <div class="header__logo">
+                    <a href="../index.html">
+                        <img src="../img/logo.png"  height="60" alt="">
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-8">
+                <div class="header__nav">
+                    <nav class="header__menu">
+                        <ul>
+                            <li class="Ativo"><a href="../index.html">Início</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu-wrap"></div>
+    </div>
+</header>    
+  <div id="start-screen">
+    <h1>Brik Game</h1>
+    <h2 id="record-display">Recorde: 0</h2>
+    <button id="start-btn">Começar Jogo</button>
+  </div>
+
+  <div id="scoreboard">
+    <div>Placar: <span id="score">0</span></div>
+    <div>Linhas: <span id="lines">0</span></div>
+    <div>Level: <span id="level">0</span></div>
+  </div>
+
+  <div id="controls">
+    <button id="mute-btn">🔊</button>
+    <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" />
+  </div>
+
+  <div id="game-container">
+    <canvas id="game" width="200" height="400"></canvas>
+  </div>
+
+  <!-- Áudios -->
+  <audio id="music" src="tetris_theme.mp3" loop></audio>
+  <audio id="audio-rotate" src="rotate.mp3"></audio>
+  <audio id="audio-line" src="line_clear.mp3"></audio>
+  <audio id="audio-gameover" src="game-over.mp3"></audio>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const ROWS = 20, COLS = 10, BLOCK = 20;
+
+    // Previne comportamento padrão de toque para não arrastar a página
+    ['pointerdown', 'pointermove', 'pointerup'].forEach(evt => {
+      canvas.addEventListener(evt, e => e.preventDefault());
+    });
+
+    // Estado do jogo real
+    let board, piece, score, lines, level, dropCounter, dropInterval, lastTime;
+    let gameStarted = false;
+
+    // Recorde salvo no localStorage
+    let record = parseInt(localStorage.getItem('tetrisRecord')) || 0;
+    document.getElementById('record-display').textContent = 'Recorde: ' + record;
+
+    // Áudio
+    const music = document.getElementById('music');
+    const audioRotate = document.getElementById('audio-rotate');
+    const audioLine = document.getElementById('audio-line');
+    const audioGameOver = document.getElementById('audio-gameover');
+    const volumeSlider = document.getElementById('volume-slider');
+    const muteBtn = document.getElementById('mute-btn');
+    let isMuted = false;
+
+    function updateVolume() {
+      const vol = isMuted ? 0 : parseFloat(volumeSlider.value);
+      [music, audioRotate, audioLine, audioGameOver].forEach(a => { a.volume = vol; a.muted = isMuted; });
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    }
+    volumeSlider.addEventListener('input', () => { if (!isMuted) updateVolume(); });
+    muteBtn.addEventListener('click', () => { isMuted = !isMuted; updateVolume(); });
+
+    // Tetraminós e cores
+    const shapes = [
+      [[1,1,1,1]],
+      [[2,2],[2,2]],
+      [[0,3,0],[3,3,3]],
+      [[4,0,0],[4,4,4]],
+      [[0,0,5],[5,5,5]],
+      [[0,6,6],[6,6,0]],
+      [[7,7,0],[0,7,7]]
+    ];
+    const colors = [null,'#0ff','#ff0','#f0f','#00f','#f80','#0f0','#f00'];
+
+    function rotate(matrix) {
+      return matrix[0].map((_,i) => matrix.map(row => row[i]).reverse());
+    }
+    function collide(b, p) {
+      return p.matrix.some((row,r) => row.some((v,c) => v && (b[p.y+r]?.[p.x+c] !== 0)));
+    }
+    function merge(b, p) {
+      p.matrix.forEach((row,r) => row.forEach((v,c) => { if (v) b[p.y+r][p.x+c] = v; }));
+    }
+    function clearLines(b) {
+      let cnt = 0;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (b[r].every(v => v)) {
+          b.splice(r, 1);
+          b.unshift(Array(COLS).fill(0));
+          cnt++; r++;
+        }
+      }
+      return cnt;
+    }
+    function newPiece() {
+      const id = Math.floor(Math.random() * shapes.length);
+      return { matrix: shapes[id], x: Math.floor((COLS - shapes[id][0].length) / 2), y: 0, id: id+1 };
+    }
+
+    function drawMatrix(mat, off) {
+      mat.forEach((row,y) => row.forEach((v,x) => {
+        if (v) {
+          ctx.fillStyle = colors[v];
+          ctx.fillRect((x+off.x)*BLOCK,(y+off.y)*BLOCK,BLOCK-1,BLOCK-1);
+        }
+      }));
+    }
+    function drawBoard(b, p) {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      drawMatrix(b, {x:0,y:0});
+      drawMatrix(p.matrix, {x:p.x,y:p.y});
+    }
+
+    // Demo
+    let demoBoard, demoPiece, demoScore, demoLines, demoLevel, demoDropCounter, demoDropInterval, demoLastTime;
+    function initDemo() {
+      demoBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      demoPiece = newPiece();
+      demoScore = demoLines = demoLevel = 0;
+      demoDropCounter = 0;
+      demoDropInterval = 1000;
+      demoLastTime = 0;
+      requestAnimationFrame(updateDemo);
+    }
+    function updateDemo(time=0) {
+      const delta = time - demoLastTime; demoLastTime = time;
+      demoDropCounter += delta;
+      if (demoDropCounter > demoDropInterval) {
+        const move = Math.random();
+        if (move < 0.3) demoPiece.x--;
+        else if (move < 0.6) demoPiece.x++;
+        else if (move < 0.8) demoPiece.matrix = rotate(demoPiece.matrix);
+        demoPiece.y++;
+        if (collide(demoBoard, demoPiece)) {
+          demoPiece.y--;
+          merge(demoBoard, demoPiece);
+          const cnt = clearLines(demoBoard);
+          if (cnt) demoScore += [0,40,100,300,1200][cnt] * (demoLevel+1);
+          demoPiece = newPiece();
+          if (collide(demoBoard, demoPiece)) {
+            demoBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            demoPiece = newPiece(); demoScore = demoLines = demoLevel = 0;
+          }
+        }
+        demoDropCounter = 0;
+        demoLevel = Math.floor(demoLines/10);
+        demoDropInterval = Math.max(100, 1000 - demoLevel*100);
+      }
+      drawBoard(demoBoard, demoPiece);
+      if (!gameStarted) requestAnimationFrame(updateDemo);
+    }
+
+    // Jogo real
+    function startGame() {
+      board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      score = lines = level = 0;
+      piece = newPiece();
+      dropCounter = 0;
+      dropInterval = 1000;
+      lastTime = 0;
+      gameStarted = true;
+      updateVolume(); music.play(); music.playbackRate = 1;
+      document.getElementById('start-screen').style.display = 'none';
+      requestAnimationFrame(update);
+    }
+    document.getElementById('start-btn').addEventListener('click', startGame);
+
+    function update(time=0) {
+      const delta = time - lastTime; lastTime = time;
+      dropCounter += delta;
+      if (dropCounter > dropInterval) {
+        piece.y++;
+        if (collide(board,piece)) {
+          piece.y--;
+          merge(board,piece);
+          const cnt = clearLines(board);
+          if (cnt) {
+            lines += cnt;
+            score += [0,40,100,300,1200][cnt] * (level+1);
+            audioLine.pause(); audioLine.currentTime=0; audioLine.play();
+          }
+          piece = newPiece();
+          if (collide(board,piece)) {
+            audioGameOver.pause(); audioGameOver.currentTime=0; audioGameOver.play();
+            music.pause();
+            gameStarted = false;
+            record = Math.max(record, score);
+            localStorage.setItem('tetrisRecord', record);
+            document.getElementById('record-display').textContent = 'Recorde: ' + record;
+            document.getElementById('start-screen').style.display = 'flex';
+            return;
+          }
+        }
+        dropCounter = 0;
+      }
+      // Ajuste de velocidade da música
+      const filled = board.flat().filter(v=>v).length;
+      const total = ROWS*COLS;
+      if (level>5 && filled>total/2 && music.playbackRate===1) music.playbackRate=1.5;
+      else if (filled<=total/4 && music.playbackRate!==1) music.playbackRate=1;
+      drawBoard(board, piece);
+      document.getElementById('score').textContent = score;
+      document.getElementById('lines').textContent = lines;
+      document.getElementById('level').textContent = level;
+      dropInterval = Math.max(100, 1000 - level*100);
+      if (gameStarted) requestAnimationFrame(update);
+    }
+
+    function rotatePiece() {
+      piece.matrix = rotate(piece.matrix);
+      if(collide(board,piece)) piece.matrix = rotate(rotate(rotate(piece.matrix)));
+      audioRotate.pause(); audioRotate.currentTime=0; audioRotate.play();
+    }
+    document.addEventListener('keydown', e => {
+      if (!gameStarted) return;
+      switch(e.key) {
+        case 'ArrowLeft': piece.x--; if(collide(board,piece)) piece.x++; break;
+        case 'ArrowRight': piece.x++; if(collide(board,piece)) piece.x--; break;
+        case 'ArrowDown': piece.y++; if(collide(board,piece)) { piece.y--; merge(board,piece); clearLines(board); piece=newPiece(); } dropCounter=0; break;
+        case ' ': rotatePiece(); break;
+      }
+    });
+    canvas.addEventListener('click', () => gameStarted && rotatePiece());
+
+    // Drag & Drop
+    let sx, sy;
+    canvas.addEventListener('pointerdown', e => {
+      if (gameStarted) { sx=e.clientX; sy=e.clientY; canvas.setPointerCapture(e.pointerId); }
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (!gameStarted || sx===undefined) return;
+      const dx = e.clientX - sx;
+      const dy = e.clientY - sy;
+      if (Math.abs(dx) > BLOCK) {
+        piece.x += dx > 0 ? 1 : -1;
+        if (collide(board, piece)) piece.x += dx > 0 ? -1 : 1;
+        sx = e.clientX;
+      }
+      if (Math.abs(dy) > BLOCK) {
+        piece.y++;
+        if (collide(board, piece)) {
+          piece.y--;
+          merge(board, piece); clearLines(board); piece=newPiece();
+        }
+        dropCounter=0;
+        sy=e.clientY;
+      }
+    });
+    canvas.addEventListener('pointerup', e => { canvas.releasePointerCapture(e.pointerId); sx=sy=undefined; });
+
+    // Inicia demo
+    initDemo();
+  </script>
+</body>
+</html>
